@@ -1,1 +1,1304 @@
-123
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>设备控制面板</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js">
+    </script>
+    <style>
+        :root {
+            --card-resistance: #f97316;
+            --card-amplitude: #3b82f6;
+            --card-phase: #8b5cf6;
+            --card-relay: #10b981;
+            --card-relay-off: #94a3b8;
+            --bg-page: #f0f4f8;
+            --surface: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 6px rgba(0, 0, 0, 0.04);
+            --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.12);
+            --radius-xl: 20px;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+            background: var(--bg-page);
+            min-height: 100vh;
+            padding: 1rem;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+            background-image: radial-gradient(ellipse at 20% 10%, #e2e8f0 0%, transparent 55%),
+                radial-gradient(ellipse at 80% 85%, #dbeafe 0%, transparent 55%),
+                radial-gradient(ellipse at 50% 50%, #f1f5f9 0%, transparent 70%);
+            background-attachment: fixed;
+        }
+
+        .main-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        /* 头部卡片 – 始终单行 */
+        .header-card {
+            background: var(--surface);
+            border-radius: var(--radius-xl);
+            padding: 1.25rem 1.5rem;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: nowrap;
+            /* 禁止换行 */
+            border: 1px solid rgba(226, 232, 240, 0.7);
+            transition: var(--transition);
+            min-width: 0;
+        }
+
+        .header-card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            min-width: 0;
+            flex: 1 1 auto;
+            /* 允许收缩 */
+        }
+
+        .device-icon-wrap {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+            transition: var(--transition);
+        }
+
+        .device-icon-wrap i {
+            color: #fff;
+            font-size: 1.2rem;
+        }
+
+        .device-info {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .device-info h1 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        .device-info .device-sub {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+            /* 绝不收缩 */
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            letter-spacing: 0.01em;
+            transition: all 0.35s ease;
+            white-space: nowrap;
+            border: 1.5px solid transparent;
+        }
+
+        .status-badge.online {
+            background: #ecfdf5;
+            color: #059669;
+            border-color: #a7f3d0;
+        }
+
+        .status-badge.offline {
+            background: #f8fafc;
+            color: #94a3b8;
+            border-color: #e2e8f0;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            transition: all 0.35s ease;
+        }
+
+        .status-dot.online-dot {
+            background: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+            animation: pulse-dot 2s infinite;
+        }
+
+        .status-dot.offline-dot {
+            background: #cbd5e1;
+            box-shadow: 0 0 0 3px rgba(203, 213, 225, 0.2);
+        }
+
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+            }
+            50% {
+                box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.08);
+            }
+        }
+
+        .refresh-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 1.5px solid #e2e8f0;
+            background: #fff;
+            color: #64748b;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+            flex-shrink: 0;
+        }
+
+        .refresh-btn:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+            color: #334155;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .refresh-btn:active {
+            transform: scale(0.9);
+            background: #f1f5f9;
+        }
+
+        .refresh-btn.spin i {
+            animation: spin 0.6s linear;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* 针对小屏手机的细微调整 */
+        @media (max-width: 480px) {
+            .header-card {
+                padding: 0.9rem 1rem;
+                gap: 0.5rem;
+            }
+            .device-icon-wrap {
+                width: 38px;
+                height: 38px;
+                min-width: 38px;
+            }
+            .device-icon-wrap i {
+                font-size: 1rem;
+            }
+            .device-info h1 {
+                font-size: 1rem;
+            }
+            .device-info .device-sub {
+                font-size: 0.65rem;
+            }
+            .status-badge {
+                padding: 0.3rem 0.6rem;
+                font-size: 0.72rem;
+                gap: 0.25rem;
+            }
+            .status-dot {
+                width: 7px;
+                height: 7px;
+            }
+            .refresh-btn {
+                width: 30px;
+                height: 30px;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* 属性卡片网格 */
+        .property-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .property-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 1.15rem;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .property-grid {
+                grid-template-columns: 1fr;
+                gap: 0.85rem;
+            }
+        }
+
+        /* 属性卡片 */
+        .property-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 1.15rem 1.1rem;
+            box-shadow: var(--shadow-sm);
+            cursor: pointer;
+            transition: all var(--transition);
+            border: 1px solid rgba(226, 232, 240, 0.6);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            user-select: none;
+            min-width: 0;
+        }
+
+        .property-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-radius: 0 0 3px 3px;
+            transition: all var(--transition);
+            opacity: 0.7;
+        }
+
+        .property-card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+            border-color: rgba(203, 213, 225, 0.9);
+        }
+
+        .property-card:active {
+            transform: scale(0.975);
+            transition: 0.1s ease;
+        }
+
+        .property-card.resistance::before {
+            background: var(--card-resistance);
+            opacity: 0.85;
+        }
+
+        .property-card.amplitude::before {
+            background: var(--card-amplitude);
+            opacity: 0.85;
+        }
+
+        .property-card.phase::before {
+            background: var(--card-phase);
+            opacity: 0.85;
+        }
+
+        .property-card.relay::before {
+            background: var(--card-relay);
+            opacity: 0.85;
+            transition: background 0.4s ease, opacity 0.4s ease;
+        }
+
+        .property-card.relay.relay-off::before {
+            background: var(--card-relay-off);
+            opacity: 0.6;
+        }
+
+        .property-card.no-click {
+            cursor: default;
+        }
+
+        .property-card.no-click:hover {
+            transform: none;
+            box-shadow: var(--shadow-sm);
+            border-color: rgba(226, 232, 240, 0.6);
+        }
+
+        .property-card.no-click:active {
+            transform: none;
+        }
+
+        .card-icon-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .card-icon-circle {
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: all var(--transition);
+        }
+
+        .card-icon-circle.res {
+            background: #fff7ed;
+            color: #f97316;
+        }
+
+        .card-icon-circle.amp {
+            background: #eff6ff;
+            color: #3b82f6;
+        }
+
+        .card-icon-circle.pha {
+            background: #f5f3ff;
+            color: #8b5cf6;
+        }
+
+        .card-icon-circle.rly {
+            background: #ecfdf5;
+            color: #10b981;
+            transition: all 0.4s ease;
+        }
+
+        .card-icon-circle.rly.rly-off-bg {
+            background: #f8fafc;
+            color: #94a3b8;
+        }
+
+        .card-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        .card-value-row {
+            display: flex;
+            align-items: baseline;
+            gap: 0.3rem;
+            flex-wrap: wrap;
+        }
+
+        .card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            line-height: 1;
+            transition: all 0.3s ease;
+        }
+
+        @media (max-width: 480px) {
+            .card-value {
+                font-size: 1.55rem;
+            }
+            .property-card {
+                padding: 0.9rem 0.85rem;
+                gap: 0.4rem;
+            }
+            .card-icon-circle {
+                width: 34px;
+                height: 34px;
+                min-width: 34px;
+                font-size: 0.95rem;
+            }
+            .card-label {
+                font-size: 0.72rem;
+            }
+        }
+
+        .card-unit {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            letter-spacing: 0.02em;
+        }
+
+        .card-hint {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            letter-spacing: 0.02em;
+            margin-top: 0.15rem;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: all var(--transition);
+        }
+
+        .property-card:not(.no-click):hover .card-hint {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .card-relay-status {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            transition: color 0.4s ease;
+        }
+
+        .card-relay-status.on {
+            color: #10b981;
+        }
+
+        .card-relay-status.off {
+            color: #94a3b8;
+        }
+
+        /* 控制面板 */
+        .control-panel {
+            background: var(--surface);
+            border-radius: var(--radius-xl);
+            padding: 1.35rem 1.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid rgba(226, 232, 240, 0.7);
+            transition: var(--transition);
+        }
+
+        .control-panel:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .control-header {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            margin-bottom: 1rem;
+        }
+
+        .control-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 0.01em;
+        }
+
+        .control-indicator {
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.3rem 0.7rem;
+            border-radius: 999px;
+            letter-spacing: 0.02em;
+            transition: all 0.4s ease;
+        }
+
+        .control-indicator.on-ind {
+            background: #ecfdf5;
+            color: #059669;
+        }
+
+        .control-indicator.off-ind {
+            background: #f8fafc;
+            color: #94a3b8;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.85rem;
+        }
+
+        @media (max-width: 480px) {
+            .btn-group {
+                flex-direction: column;
+                gap: 0.6rem;
+            }
+        }
+
+        .btn-control {
+            flex: 1;
+            padding: 0.85rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.02em;
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            min-height: 50px;
+            position: relative;
+            overflow: hidden;
+            user-select: none;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-control:active {
+            transform: scale(0.96);
+            transition: 0.1s ease;
+        }
+
+        .btn-on {
+            background: #10b981;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+        }
+
+        .btn-on:hover {
+            background: #059669;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+            transform: translateY(-1px);
+        }
+
+        .btn-off {
+            background: #ef4444;
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-off:hover {
+            background: #dc2626;
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-control .btn-ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.35);
+            transform: scale(0);
+            animation: ripple 0.6s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        .feedback-toast {
+            text-align: center;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #10b981;
+            margin-top: 0.65rem;
+            min-height: 1.3rem;
+            transition: all 0.3s ease;
+            opacity: 0;
+        }
+
+        .feedback-toast.show {
+            opacity: 1;
+            animation: toastPop 0.4s ease;
+        }
+
+        @keyframes toastPop {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            60% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* 设置按钮 */
+        .settings-area {
+            display: flex;
+            justify-content: center;
+            margin-top: 0.5rem;
+        }
+
+        .settings-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.7rem 1.6rem;
+            background: #fff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 999px;
+            color: #475569;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all var(--transition);
+            box-shadow: var(--shadow-sm);
+            letter-spacing: 0.02em;
+        }
+
+        .settings-btn:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+            box-shadow: var(--shadow-md);
+        }
+
+        .settings-btn:active {
+            transform: scale(0.96);
+        }
+
+        .settings-btn i {
+            font-size: 1rem;
+            color: #6366f1;
+        }
+
+        /* 设置模态框 */
+        .settings-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            animation: fadeIn 0.25s ease;
+        }
+
+        .settings-modal-overlay.hidden {
+            display: none;
+        }
+
+        .settings-modal-dialog {
+            background: #fff;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+            width: 100%;
+            max-width: 420px;
+            padding: 1.8rem;
+            animation: slideUp 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 480px) {
+            .settings-modal-dialog {
+                margin: 0 1rem;
+                padding: 1.5rem;
+            }
+        }
+
+        .settings-modal-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .settings-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .settings-input-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .settings-input {
+            padding: 0.75rem 1rem;
+            border: 1.5px solid #e2e8f0;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            outline: none;
+            transition: all var(--transition);
+            font-family: inherit;
+        }
+
+        .settings-input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        .settings-actions {
+            display: flex;
+            gap: 0.8rem;
+            justify-content: flex-end;
+        }
+
+        .settings-actions button {
+            padding: 0.65rem 1.4rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .btn-cancel {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .btn-cancel:hover {
+            background: #e2e8f0;
+        }
+
+        .btn-save {
+            background: #6366f1;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-save:hover {
+            background: #4f46e5;
+        }
+
+        .footer-hint {
+            text-align: center;
+            font-size: 0.72rem;
+            color: #94a3b8;
+            letter-spacing: 0.03em;
+            padding: 0.3rem 0;
+        }
+
+        /* 历史数据模态框 */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            animation: fadeIn 0.25s ease;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal-dialog {
+            background: #fff;
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+            width: 100%;
+            max-width: 800px;
+            max-height: 88vh;
+            overflow: auto;
+            animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .modal-dialog {
+                max-width: 100%;
+                max-height: 92vh;
+                border-radius: 20px 20px 0 0;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                animation: slideUpMobile 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            @keyframes slideUpMobile {
+                from {
+                    transform: translateY(100%);
+                }
+                to {
+                    transform: translateY(0);
+                }
+            }
+            .modal-overlay {
+                align-items: flex-end;
+                padding: 0;
+            }
+        }
+
+        .modal-header {
+            padding: 1.2rem 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 5;
+            border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+        }
+
+        @media (max-width: 600px) {
+            .modal-header {
+                border-radius: 20px 20px 0 0;
+                padding: 1rem 1.2rem;
+            }
+        }
+
+        .modal-header h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: #f1f5f9;
+            color: #64748b;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+        }
+
+        .modal-close:hover {
+            background: #e2e8f0;
+            color: #1e293b;
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 1.2rem 1.5rem 1.5rem;
+            flex: 1;
+        }
+
+        @media (max-width: 600px) {
+            .modal-body {
+                padding: 0.8rem 0.9rem 1.2rem;
+            }
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 420px;
+        }
+
+        @media (max-width: 600px) {
+            .chart-container {
+                height: 280px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- 头部卡片：单行布局 -->
+        <div class="header-card">
+            <div class="header-left">
+                <div class="device-icon-wrap"><i class="fa fa-microchip"></i></div>
+                <div class="device-info">
+                    <h1 id="deviceTitle">RA 设备控制面板</h1>
+                    <span class="device-sub">产品 ID · LO3L73WJ30</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div id="statusBadge" class="status-badge offline">
+                    <span id="statusDot" class="status-dot offline-dot"></span>
+                    <span id="statusText">离线</span>
+                </div>
+                <button id="refreshStatusBtn" class="refresh-btn" title="刷新状态"><i class="fa fa-refresh"></i></button>
+            </div>
+        </div>
+
+        <!-- 属性卡片 -->
+        <div class="property-grid">
+            <div class="property-card resistance" data-identifier="R" data-name="电阻值" data-unit="Ω" data-color="#f97316">
+                <div class="card-icon-row"><div class="card-icon-circle res"><i class="fa fa-bolt"></i></div><span class="card-label">电阻值</span></div>
+                <div class="card-value-row"><span class="card-value" id="val-R">--</span><span class="card-unit">Ω</span></div>
+                <span class="card-hint">📊 点击查看历史数据</span>
+            </div>
+            <div class="property-card amplitude" data-identifier="A" data-name="幅值" data-unit="A" data-color="#3b82f6">
+                <div class="card-icon-row"><div class="card-icon-circle amp"><i class="fa fa-tachometer"></i></div><span class="card-label">幅值</span></div>
+                <div class="card-value-row"><span class="card-value" id="val-A">--</span><span class="card-unit">A</span></div>
+                <span class="card-hint">📊 点击查看历史数据</span>
+            </div>
+            <div class="property-card phase" data-identifier="P" data-name="相位" data-unit="rad" data-color="#8b5cf6">
+                <div class="card-icon-row"><div class="card-icon-circle pha"><i class="fa fa-circle-o-notch"></i></div><span class="card-label">相位</span></div>
+                <div class="card-value-row"><span class="card-value" id="val-P">--</span><span class="card-unit">rad</span></div>
+                <span class="card-hint">📊 点击查看历史数据</span>
+            </div>
+            <div class="property-card relay relay-off no-click" id="relayCard">
+                <div class="card-icon-row"><div class="card-icon-circle rly rly-off-bg" id="relayIconCircle"><i class="fa fa-power-off"></i></div><span class="card-label">继电器</span></div>
+                <div class="card-value-row"><span class="card-relay-status off" id="val-Button">关闭</span></div>
+                <span class="card-hint" style="opacity:0.5;">🔒 开关状态</span>
+            </div>
+        </div>
+
+        <!-- 控制面板 -->
+        <div class="control-panel">
+            <div class="control-header">
+                <h3>⚡ 远程开关控制</h3>
+                <span class="control-indicator off-ind" id="controlIndicator">当前：关闭</span>
+            </div>
+            <div class="btn-group">
+                <button class="btn-control btn-on" id="btnOpen"><i class="fa fa-power-off"></i> 打 开</button>
+                <button class="btn-control btn-off" id="btnClose"><i class="fa fa-power-off"></i> 关 闭</button>
+            </div>
+            <div class="feedback-toast" id="feedbackToast"></div>
+        </div>
+
+        <!-- 设置按钮 -->
+        <div class="settings-area">
+            <button class="settings-btn" id="openSettingsBtn">
+                <i class="fa fa-cog"></i> 设置设备名称
+            </button>
+        </div>
+
+        <!-- 底部提示：已改为2秒 -->
+        <p class="footer-hint">🔄 数据每 2 秒自动刷新</p>
+    </div>
+
+    <!-- 历史数据模态框 -->
+    <div class="modal-overlay hidden" id="historyModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 id="modalTitle">📈 历史数据</h3>
+                <button class="modal-close" id="closeModalBtn"><i class="fa fa-times"></i></button>
+            </div>
+            <div class="modal-body"><div class="chart-container" id="historyChart"></div></div>
+        </div>
+    </div>
+
+    <!-- 设置模态框 -->
+    <div class="settings-modal-overlay hidden" id="settingsModal">
+        <div class="settings-modal-dialog">
+            <div class="settings-modal-title"><i class="fa fa-cog" style="color:#6366f1;"></i> 自定义设备名称</div>
+            <div class="settings-input-group">
+                <label for="deviceNameInput">设备显示名称</label>
+                <input type="text" id="deviceNameInput" class="settings-input" placeholder="请输入设备名称" maxlength="30">
+            </div>
+            <div class="settings-actions">
+                <button class="btn-cancel" id="cancelSettingsBtn">取消</button>
+                <button class="btn-save" id="saveSettingsBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const config = {
+                token: "version=2018-10-31&res=products%2FLO3L73WJ30%2Fdevices%2FRA&et=1810884241&method=md5&sign=0Z2T%2BYZKCMqCrrQdjuSoiQ%3D%3D",
+                productId: "LO3L73WJ30",
+                deviceName: "RA",
+                api: {
+                    deviceDetail: "https://iot-api.heclouds.com/device/detail",
+                    getProperty: "https://iot-api.heclouds.com/thingmodel/query-device-property",
+                    setProperty: "https://iot-api.heclouds.com/thingmodel/set-device-property",
+                    getHistory: "https://iot-api.heclouds.com/thingmodel/query-device-property-history"
+                }
+            };
+
+            const $statusBadge = document.getElementById('statusBadge');
+            const $statusDot = document.getElementById('statusDot');
+            const $statusText = document.getElementById('statusText');
+            const $valR = document.getElementById('val-R');
+            const $valA = document.getElementById('val-A');
+            const $valP = document.getElementById('val-P');
+            const $valButton = document.getElementById('val-Button');
+            const $relayCard = document.getElementById('relayCard');
+            const $relayIconCircle = document.getElementById('relayIconCircle');
+            const $controlIndicator = document.getElementById('controlIndicator');
+            const $feedbackToast = document.getElementById('feedbackToast');
+            const $deviceTitle = document.getElementById('deviceTitle');
+            const $historyModal = document.getElementById('historyModal');
+            const $modalTitle = document.getElementById('modalTitle');
+            const $closeModalBtn = document.getElementById('closeModalBtn');
+            const $chartContainer = document.getElementById('historyChart');
+            const $propertyCards = document.querySelectorAll('.property-card:not(.no-click)');
+            const $refreshBtn = document.getElementById('refreshStatusBtn');
+            const $openSettingsBtn = document.getElementById('openSettingsBtn');
+            const $settingsModal = document.getElementById('settingsModal');
+            const $deviceNameInput = document.getElementById('deviceNameInput');
+            const $saveSettingsBtn = document.getElementById('saveSettingsBtn');
+            const $cancelSettingsBtn = document.getElementById('cancelSettingsBtn');
+
+            let chartInstance = null;
+            let refreshTimer = null;
+            let feedbackTimer = null;
+            const DEFAULT_TITLE = 'RA 设备控制面板';
+            const STORAGE_KEY = 'customDeviceName';
+
+            function loadCustomName() { return localStorage.getItem(STORAGE_KEY) || DEFAULT_TITLE; }
+
+            function saveCustomName(name) { localStorage.setItem(STORAGE_KEY, name); }
+
+            function updateDeviceTitle(name) { $deviceTitle.textContent = name || DEFAULT_TITLE; }
+            updateDeviceTitle(loadCustomName());
+
+            function openSettings() {
+                $deviceNameInput.value = loadCustomName();
+                $settingsModal.classList.remove('hidden');
+                $deviceNameInput.focus();
+            }
+
+            function closeSettings() { $settingsModal.classList.add('hidden'); }
+
+            function applySettings() {
+                const newName = $deviceNameInput.value.trim();
+                if (!newName) { alert('设备名称不能为空'); return; }
+                saveCustomName(newName);
+                updateDeviceTitle(newName);
+                closeSettings();
+                showToast('✅ 名称已更新');
+            }
+
+            $openSettingsBtn.addEventListener('click', openSettings);
+            $cancelSettingsBtn.addEventListener('click', closeSettings);
+            $saveSettingsBtn.addEventListener('click', applySettings);
+            $settingsModal.addEventListener('click', e => { if (e.target === $settingsModal) closeSettings(); });
+            $deviceNameInput.addEventListener('keydown', e => { if (e.key === 'Enter') applySettings(); });
+
+            function showToast(msg) {
+                if (feedbackTimer) clearTimeout(feedbackTimer);
+                $feedbackToast.textContent = msg;
+                $feedbackToast.classList.add('show');
+                feedbackTimer = setTimeout(() => $feedbackToast.classList.remove('show'), 2000);
+            }
+
+            function addRipple(e, btn) {
+                const rect = btn.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const ripple = document.createElement('span');
+                ripple.classList.add('btn-ripple');
+                ripple.style.width = size + 'px';
+                ripple.style.height = size + 'px';
+                ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+                ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+                btn.appendChild(ripple);
+                ripple.addEventListener('animationend', () => ripple.remove());
+            }
+
+            document.getElementById('btnOpen').addEventListener('click', function(e) {
+                addRipple(e, this);
+                controlRelay(true);
+            });
+            document.getElementById('btnClose').addEventListener('click', function(e) {
+                addRipple(e, this);
+                controlRelay(false);
+            });
+            $refreshBtn.addEventListener('click', function() {
+                this.classList.add('spin');
+                setTimeout(() => this.classList.remove('spin'), 600);
+                getDeviceStatus();
+                getDeviceProperties();
+                showToast('🔄 状态已刷新');
+            });
+
+            async function getDeviceStatus() {
+                try {
+                    const url =
+                        `${config.api.deviceDetail}?product_id=${encodeURIComponent(config.productId)}&device_name=${encodeURIComponent(config.deviceName)}`;
+                    const res = await fetch(url, { headers: { "authorization": config.token } });
+                    const data = await res.json();
+                    updateStatusUI(data.code === 0 && data.data?.status === 1);
+                } catch (err) { updateStatusUI(false); }
+            }
+
+            function updateStatusUI(online) {
+                if (online) {
+                    $statusDot.className = 'status-dot online-dot';
+                    $statusText.textContent = '在线';
+                    $statusBadge.className = 'status-badge online';
+                } else {
+                    $statusDot.className = 'status-dot offline-dot';
+                    $statusText.textContent = '离线';
+                    $statusBadge.className = 'status-badge offline';
+                }
+            }
+
+            async function getDeviceProperties() {
+                try {
+                    const url =
+                        `${config.api.getProperty}?product_id=${encodeURIComponent(config.productId)}&device_name=${encodeURIComponent(config.deviceName)}`;
+                    const res = await fetch(url, { headers: { "authorization": config.token } });
+                    const data = await res.json();
+                    if (data.code !== 0) return;
+                    const list = data.data || [];
+                    const r = list.find(i => i.identifier === "R")?.value;
+                    const a = list.find(i => i.identifier === "A")?.value;
+                    const p = list.find(i => i.identifier === "P")?.value;
+                    const btn = list.find(i => i.identifier === "Button")?.value;
+                    $valR.textContent = (r !== undefined && !isNaN(parseFloat(r))) ? parseFloat(r).toFixed(2) :
+                        '--';
+                    $valA.textContent = (a !== undefined && !isNaN(parseFloat(a))) ? parseFloat(a).toFixed(1) :
+                        '--';
+                    $valP.textContent = (p !== undefined && !isNaN(parseFloat(p))) ? parseFloat(p).toFixed(3) :
+                        '--';
+                    updateRelayUI(btn);
+                } catch (err) {}
+            }
+
+            function updateRelayUI(val) {
+                const isOn = (val === true || val === 1 || val === '1' || val === 'true');
+                if (isOn) {
+                    $valButton.textContent = '开启';
+                    $valButton.className = 'card-relay-status on';
+                    $relayCard.classList.remove('relay-off');
+                    $relayIconCircle.classList.remove('rly-off-bg');
+                    $controlIndicator.textContent = '当前：开启';
+                    $controlIndicator.className = 'control-indicator on-ind';
+                } else {
+                    $valButton.textContent = '关闭';
+                    $valButton.className = 'card-relay-status off';
+                    $relayCard.classList.add('relay-off');
+                    $relayIconCircle.classList.add('rly-off-bg');
+                    $controlIndicator.textContent = '当前：关闭';
+                    $controlIndicator.className = 'control-indicator off-ind';
+                }
+            }
+
+            function controlRelay(status) {
+                showToast('✅ 已执行');
+                fetch(config.api.setProperty, {
+                    method: "POST",
+                    headers: { "authorization": config.token, "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        product_id: config.productId,
+                        device_name: config.deviceName,
+                        params: { "Button": status }
+                    })
+                }).then(r => r.json()).then(() => getDeviceProperties()).catch(err => console.error(err));
+            }
+
+            async function loadHistoryData(identifier, name, unit, color) {
+                $historyModal.classList.remove('hidden');
+                $modalTitle.textContent = `📈 ${name} 历史数据`;
+                if (!chartInstance) chartInstance = echarts.init($chartContainer);
+                chartInstance.showLoading({ text: '加载中...', color: color, maskColor: 'rgba(255,255,255,0.85)' });
+                try {
+                    const end = Date.now();
+                    const start = end - 24 * 60 * 60 * 1000;
+                    const url =
+                        `${config.api.getHistory}?product_id=${encodeURIComponent(config.productId)}&device_name=${encodeURIComponent(config.deviceName)}&identifier=${identifier}&start_time=${start}&end_time=${end}&limit=120`;
+                    const res = await fetch(url, { headers: { "authorization": config.token } });
+                    const data = await res.json();
+                    if (data.code !== 0) { alert("获取失败");
+                        chartInstance.hideLoading(); return; }
+                    const list = (data.data?.list || []).sort((a, b) => parseInt(a.time) - parseInt(b.time));
+                    const times = list.map(i => { const d = new Date(parseInt(i.time)); return `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`; });
+                    const values = list.map(i => isNaN(parseFloat(i.value)) ? i.value : parseFloat(i.value));
+                    chartInstance.setOption({
+                        tooltip: { trigger: 'axis' },
+                        grid: { left: '5%', right: '6%', bottom: '8%', top: '8%', containLabel: true },
+                        xAxis: { type: 'category', data: times, axisLabel: { rotate: 35, fontSize: 11,
+                                interval: Math.max(Math.floor(times.length / 8), 1) } },
+                        yAxis: { type: 'value', name: unit },
+                        series: [{ name: name, type: 'line', data: values, smooth: true, symbol: 'circle',
+                            symbolSize: 4, lineStyle: { color: color, width: 2.5 }, itemStyle: { color: color },
+                            areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0,
+                                    color: color + '40' }, { offset: 0.7, color: color + '08' }, { offset: 1,
+                                    color: color + '00' }]) } }]
+                    }, true);
+                    chartInstance.hideLoading();
+                } catch (e) { alert("加载失败");
+                    chartInstance.hideLoading(); }
+            }
+
+            function closeHistoryModal() {
+                $historyModal.classList.add('hidden');
+                if (chartInstance) { chartInstance.dispose();
+                    chartInstance = null; }
+            }
+
+            $propertyCards.forEach(c => c.addEventListener('click', function() {
+                loadHistoryData(this.dataset.identifier, this.dataset.name, this.dataset.unit, this.dataset
+                    .color);
+            }));
+            $closeModalBtn.addEventListener('click', closeHistoryModal);
+            $historyModal.addEventListener('click', e => { if (e.target === $historyModal) closeHistoryModal(); });
+            document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$historyModal.classList.contains(
+                    'hidden')) closeHistoryModal(); });
+            window.addEventListener('resize', () => { if (chartInstance && !$historyModal.classList.contains('hidden'))
+                    chartInstance.resize(); });
+
+            function init() {
+                getDeviceStatus();
+                getDeviceProperties();
+                // 定时器间隔改为2000毫秒（2秒）
+                refreshTimer = setInterval(() => {
+                    getDeviceStatus();
+                    getDeviceProperties();
+                }, 2000);
+            }
+            window.addEventListener('beforeunload', () => {
+                clearInterval(refreshTimer);
+                if (feedbackTimer) clearTimeout(feedbackTimer);
+                if (chartInstance) chartInstance.dispose();
+            });
+            init();
+        })();
+    </script>
+</body>
+</html>
